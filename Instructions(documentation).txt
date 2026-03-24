@@ -1,0 +1,95 @@
+================================================================                
+                CUCKOO SEARCH (CS) FOR HYPERPARAMETER TUNING
+================================================================
+
+1. OVERVIEW
+-----------
+The Cuckoo Search (CS) algorithm is a metaheuristic optimization 
+algorithm inspired by the brood parasitism of cuckoo species. 
+It uses "Levy Flights" (random walks with occasional long jumps) 
+to explore a search space more effectively than standard random 
+searches, making it ideal for finding optimal hyperparameters in 
+Machine Learning models.
+
+2. PARAMETER DEFINITIONS
+------------------------
+- fitness_func: The objective function to minimize.
+- bounds: List of (min, max) tuples for each parameter.
+- n_nests: The number of candidate solutions (population).
+- n_iter: Number of generations/iterations to run.
+- pa: Probability of abandoning a nest (discovery of alien eggs).
+
+3. GENERAL IMPLEMENTATION STEPS
+-------------------------------
+Step 1: Define a fitness function that takes a list of parameters.
+Step 2: Inside the function, instantiate your ML model using those 
+        parameters.
+Step 3: Calculate a score (e.g., Cross-Validation Accuracy).
+Step 4: Return -score (since CS minimizes, we negate accuracy to 
+        maximize it).
+Step 5: Define search bounds and run the CuckooSearch class.
+
+4. ML MODEL IMPLEMENTATIONS
+---------------------------
+
+A. RANDOM FOREST (Discrete Parameters)
+--------------------------------------
+Random Forest requires integers for many parameters. Use int() casting.
+
+    def rf_fitness(params):
+        n_estimators = int(params[0])
+        max_depth = int(params[1])
+        model = RandomForestClassifier(n_estimators=n_estimators, 
+                                       max_depth=max_depth)
+        score = cross_val_score(model, X, y, cv=3).mean()
+        return -score
+
+    # Bounds: n_estimators (10-200), max_depth (1-20)
+    bounds = [(10, 200), (1, 20)]
+    cs = CuckooSearch(rf_fitness, bounds, n_nests=10, n_iter=20)
+    best_params, best_score = cs.run()
+
+
+B. GRADIENT BOOSTING (Continuous & Discrete)
+--------------------------------------------
+Combines learning rate (float) with estimator count (int).
+
+    def gb_fitness(params):
+        learning_rate = params[0]
+        n_estimators = int(params[1])
+        model = GradientBoostingClassifier(learning_rate=learning_rate, 
+                                           n_estimators=n_estimators)
+        score = cross_val_score(model, X, y, cv=3).mean()
+        return -score
+
+    # Bounds: learning_rate (0.01-0.3), n_estimators (50-300)
+    bounds = [(0.01, 0.3), (50, 300)]
+    cs = CuckooSearch(gb_fitness, bounds, n_nests=10, n_iter=20)
+
+
+C. SUPPORT VECTOR MACHINE (SVM) (Continuous Parameters)
+-------------------------------------------------------
+SVM is highly sensitive to the C and Gamma coefficients.
+
+    def svm_fitness(params):
+        C_val = params[0]
+        gamma_val = params[1]
+        model = SVC(C=C_val, gamma=gamma_val)
+        score = cross_val_score(model, X, y, cv=3).mean()
+        return -score
+
+    # Bounds: C (0.1-100), Gamma (0.0001-1)
+    bounds = [(0.1, 100), (0.0001, 1)]
+    cs = CuckooSearch(svm_fitness, bounds, n_nests=15, n_iter=25)
+
+
+5. TIPS FOR SUCCESS
+-------------------
+1. TYPE CASTING: CS explores the space using floats. Always cast 
+   parameters to int() if the ML model requires integers.
+2. EFFICIENCY: Optimization requires training the model many times. 
+   Consider using a subset of your data if the dataset is very large.
+3. RANDOM SEED: For reproducible results, set a random_state in your 
+   ML models inside the fitness function.
+
+================================================================
